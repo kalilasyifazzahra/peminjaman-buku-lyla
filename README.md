@@ -1,40 +1,43 @@
 # Aplikasi Peminjaman Buku
 
-Aplikasi web berbasis Laravel untuk mengelola data buku dan peminjaman buku perpustakaan sekolah.
+Aplikasi web berbasis Laravel untuk mengelola data buku dan transaksi peminjaman buku di perpustakaan sekolah.
 
 ## Deskripsi Program
 
-Aplikasi ini mencatat data buku, data pengguna, dan transaksi peminjaman. Ada dua jenis pengguna, ditentukan kolom `role` pada tabel `users`:
+Aplikasi ini digunakan untuk mencatat dan mengelola data buku, pengguna, serta transaksi peminjaman buku. Sistem memiliki dua jenis pengguna yang dibedakan berdasarkan kolom `role` pada tabel `users`:
 
-- **admin**: mengelola data buku dan peminjaman.
-- **siswa** (default): pengguna yang meminjam buku. Memiliki data `kelas`.
+- **Admin**: Mengelola data buku dan transaksi peminjaman.
+- **Siswa**: Pengguna yang dapat meminjam buku. Memiliki data tambahan berupa `kelas`.
 
-Alur peminjaman:
+### Alur Peminjaman
 
-1. Siswa meminjam buku, lalu sistem membuat data `loans` dengan `loan_date`, `due_date`, dan `status` bawaan `dipinjam`.
-2. Saat buku dikembalikan, `returned_at` diisi tanggal pengembalian dan `status` diperbarui.
-3. Jika pengembalian melewati `due_date`, denda dicatat pada kolom `fine`.
+1. Siswa melakukan peminjaman buku. Sistem membuat data pada tabel `loans` dengan informasi `loan_date`, `due_date`, dan status awal `dipinjam`.
+2. Ketika buku dikembalikan, sistem mengisi `returned_at` dengan tanggal pengembalian dan memperbarui status peminjaman.
+3. Jika buku dikembalikan melewati batas waktu (`due_date`), denda dicatat pada kolom `fine`.
 
-Status pengerjaan saat ini: struktur database (migration) dan model sudah dibuat. Route baru berisi halaman awal, sedangkan controller untuk buku dan peminjaman belum dibuat.
+**Status pengerjaan:** Struktur database melalui migration dan model sudah dibuat. Route saat ini baru mencakup halaman awal, sedangkan controller untuk pengelolaan buku dan peminjaman belum dibuat.
 
 ## Fitur
 
-- **Books**: data buku (judul, penulis, penerbit, tahun, stok).
-- **Loans**: data peminjaman (tanggal pinjam, batas kembali, tanggal kembali, status, denda).
-- **Users**: pengguna dengan peran dan kelas.
+- **Books**: Mengelola data buku yang meliputi judul, penulis, penerbit, tahun terbit, dan stok.
+- **Loans**: Menyimpan data transaksi peminjaman yang meliputi tanggal pinjam, batas pengembalian, tanggal kembali, status, dan denda.
+- **Users**: Mengelola data pengguna berdasarkan peran admin dan siswa, termasuk informasi kelas.
 
 ## Teknologi
 
-- PHP & Laravel
-- MySQL (XAMPP)
+- PHP
+- Laravel
+- MySQL
+- XAMPP
 - Composer
 
-## ERD
+## ERD (Entity Relationship Diagram)
 
 ```mermaid
 erDiagram
   USERS ||--o{ LOANS : meminjam
   BOOKS ||--o{ LOANS : dipinjam
+
   USERS {
     bigint id PK
     string name
@@ -44,6 +47,7 @@ erDiagram
     string password
     timestamp email_verified_at
   }
+
   BOOKS {
     bigint id PK
     string title
@@ -52,6 +56,7 @@ erDiagram
     int year
     int stock
   }
+
   LOANS {
     bigint id PK
     bigint user_id FK
@@ -66,135 +71,129 @@ erDiagram
 
 ## Dokumentasi Fungsi / Prosedur
 
-### Model `Book` (`app/Models/Book.php`)
+### 1. Model `Book` (`app/Models/Book.php`)
 
 | Elemen | Jenis | Keterangan |
 |--------|-------|------------|
-| `$fillable` | properti | Kolom yang boleh diisi massal: `title`, `author`, `publisher`, `year`, `stock`. |
+| `$fillable` | Properti | Menentukan kolom yang dapat diisi secara massal, yaitu `title`, `author`, `publisher`, `year`, dan `stock`. |
 
-### Model `Loan` (`app/Models/Loan.php`)
-
-| Elemen | Jenis | Parameter | Return | Keterangan |
-|--------|-------|-----------|--------|------------|
-| `$fillable` | properti | - | - | `user_id`, `book_id`, `loan_date`, `due_date`, `returned_at`, `status`, `fine`. |
-| `$casts` | properti | - | - | `loan_date`, `due_date`, `returned_at` otomatis menjadi objek tanggal (Carbon). |
-| `user()` | fungsi relasi | - | `BelongsTo` | Mengambil user peminjam melalui `user_id`. Contoh: `$loan->user->name`. |
-| `book()` | fungsi relasi | - | `BelongsTo` | Mengambil buku yang dipinjam melalui `book_id`. Contoh: `$loan->book->title`. |
-
-### Model `User` (`app/Models/User.php`)
+### 2. Model `Loan` (`app/Models/Loan.php`)
 
 | Elemen | Jenis | Parameter | Return | Keterangan |
 |--------|-------|-----------|--------|------------|
-| `$fillable` | properti | - | - | `name`, `email`, `password`, `role`, `kelas`. |
-| `$hidden` | properti | - | - | `password` dan `remember_token` disembunyikan saat data diubah ke array/JSON. |
-| `casts()` | fungsi | - | `array` | `email_verified_at` menjadi datetime, `password` otomatis di-hash. |
-| `isAdmin()` | fungsi | - | `bool` | `true` jika `role` bernilai `admin`, selain itu `false`. |
+| `$fillable` | Properti | - | - | Menentukan kolom yang dapat diisi secara massal, yaitu `user_id`, `book_id`, `loan_date`, `due_date`, `returned_at`, `status`, dan `fine`. |
+| `$casts` | Properti | - | - | Mengubah atribut `loan_date`, `due_date`, dan `returned_at` menjadi objek tanggal (Carbon). |
+| `user()` | Fungsi relasi | - | `BelongsTo` | Menghubungkan data peminjaman dengan pengguna melalui `user_id`. Contoh: `$loan->user->name`. |
+| `book()` | Fungsi relasi | - | `BelongsTo` | Menghubungkan data peminjaman dengan buku melalui `book_id`. Contoh: `$loan->book->title`. |
 
-### Route (`routes/web.php`)
+### 3. Model `User` (`app/Models/User.php`)
+
+| Elemen | Jenis | Parameter | Return | Keterangan |
+|--------|-------|-----------|--------|------------|
+| `$fillable` | Properti | - | - | Menentukan kolom yang dapat diisi secara massal, yaitu `name`, `email`, `password`, `role`, dan `kelas`. |
+| `$hidden` | Properti | - | - | Menyembunyikan atribut `password` dan `remember_token` ketika data diubah menjadi array atau JSON. |
+| `casts()` | Fungsi | - | `array` | Mengatur konversi `email_verified_at` menjadi datetime dan memastikan password di-hash secara otomatis. |
+| `isAdmin()` | Fungsi | - | `bool` | Memeriksa apakah pengguna memiliki role `admin`. Mengembalikan `true` jika pengguna adalah admin dan `false` jika bukan. |
+
+### 4. Route (`routes/web.php`)
 
 | Method | URL | Proses | Output |
 |--------|-----|--------|--------|
-| GET | `/` | Menjalankan closure | Menampilkan view `welcome` |
+| GET | `/` | Menjalankan closure pada route. | Menampilkan halaman awal melalui view `welcome`. |
 
 ## Debugging
 
-### Temuan pada kode saat ini
+### Temuan pada Kode Saat Ini
 
 | No | Masalah | Dampak | Perbaikan |
 |----|---------|--------|-----------|
-| 1 | Model `Book` belum punya relasi ke `Loan`. | `$book->loans` menghasilkan error karena relasi tidak ditemukan. | Tambahkan `hasMany` (lihat di bawah). |
-| 2 | Model `User` belum punya relasi ke `Loan`. | `$user->loans` tidak bisa dipakai untuk riwayat pinjam siswa. | Tambahkan `hasMany` (lihat di bawah). |
-| 3 | Belum ada controller dan route untuk books dan loans. | Fitur belum bisa diakses dari browser. | Buat `BookController` dan `LoanController`, lalu daftarkan di `routes/web.php`. |
-| 4 | Nilai `status` ditulis sebagai string bebas. | Mudah typo (`dikembalikan` vs `dikembalikan `) sehingga filter tidak cocok. | Gunakan konstanta atau enum PHP. |
-| 5 | Stok belum terhubung dengan peminjaman. | Stok bisa tidak sinkron atau minus. | Kurangi stok saat pinjam, tambah saat kembali, di dalam `DB::transaction()`. |
+| 1 | Model `Book` dan `User` belum memiliki relasi ke `Loan`. | Data riwayat peminjaman tidak dapat diakses melalui relasi model. | Tambahkan relasi `hasMany()` pada model `Book` dan `User`. |
+| 2 | Controller dan route untuk buku dan peminjaman belum dibuat. | Fitur pengelolaan buku dan transaksi peminjaman belum dapat diakses melalui browser. | Buat `BookController` dan `LoanController`, kemudian daftarkan route pada `routes/web.php`. |
+| 3 | Stok buku belum terhubung dengan proses peminjaman dan pengembalian. | Stok buku berisiko tidak sesuai atau menjadi minus. | Gunakan `DB::transaction()` untuk mengurangi stok saat peminjaman dan menambah stok saat pengembalian. |
 
-Perbaikan temuan 1 dan 2:
-
-```php
-// app/Models/Book.php
-use Illuminate\Database\Eloquent\Relations\HasMany;
-
-public function loans(): HasMany
-{
-    return $this->hasMany(Loan::class);
-}
-```
-
-```php
-// app/Models/User.php
-use Illuminate\Database\Eloquent\Relations\HasMany;
-
-public function loans(): HasMany
-{
-    return $this->hasMany(Loan::class);
-}
-```
-
-### Error umum dan solusinya
+### Error Umum dan Solusinya
 
 | Error | Penyebab | Solusi |
 |-------|----------|--------|
-| `Base table or view not found` / `Failed to open the referenced table` saat migrate | Migration `loans` berjalan sebelum `users` atau `books` karena timestamp nama file lebih awal. | Pastikan nama file migration `loans` punya timestamp paling akhir, lalu `php artisan migrate:fresh`. |
-| `SQLSTATE[23000]: Integrity constraint violation` | `user_id` atau `book_id` yang dimasukkan tidak ada di tabel induk. | Pastikan data user dan buku sudah ada sebelum membuat peminjaman. |
-| `MassAssignmentException` | Kolom belum ada di `$fillable`. | Tambahkan kolom ke `$fillable` pada model. |
-| `Call to undefined relationship` | Relasi belum didefinisikan di model. | Tambahkan fungsi relasi (lihat perbaikan di atas). |
-| `Class "App\Models\Loan" not found` | Namespace atau nama file salah. | Cek `namespace` dan nama file, lalu `composer dump-autoload`. |
+| `Base table or view not found` | Tabel belum dibuat atau urutan migration tidak sesuai. | Periksa urutan migration dan jalankan `php artisan migrate`. |
+| `MassAssignmentException` | Kolom belum terdaftar pada `$fillable`. | Tambahkan kolom yang diperlukan pada model. |
+| `Call to undefined relationship` | Relasi antar-model belum didefinisikan. | Tambahkan fungsi relasi seperti `hasMany()` atau `belongsTo()`. |
 
-### Cara melacak bug
+### Cara Melacak Bug
 
-- Cetak nilai variabel: `dd($loan);` atau `dump($request->all());`
-- Catat ke log: `Log::info('data pinjam', $data);`, lalu baca `storage/logs/laravel.log`.
-- Cek daftar route: `php artisan route:list`
-- Cek status migration: `php artisan migrate:status`
-- Uji model lewat console: `php artisan tinker`, misalnya `App\Models\Loan::with('user','book')->first();`
-- Aktifkan `APP_DEBUG=true` di `.env` saat pengembangan agar pesan error lengkap tampil.
+- **Memeriksa nilai variabel:** Gunakan `dd($loan);` atau `dump($request->all());` untuk melihat isi data.
+- **Mencatat aktivitas:** Gunakan `Log::info('data pinjam', $data);`, kemudian periksa file `storage/logs/laravel.log`.
+- **Memeriksa route:** Jalankan `php artisan route:list` untuk melihat daftar route yang tersedia.
+- **Memeriksa migration:** Jalankan `php artisan migrate:status` untuk mengetahui status migration.
+- **Menguji model:** Gunakan `php artisan tinker` untuk menjalankan pengujian model secara langsung.
+- **Menampilkan detail error:** Aktifkan `APP_DEBUG=true` pada file `.env` selama proses pengembangan.
 
 ## Instalasi
 
-1. Clone repository
+### 1. Clone Repository
 
-   ```bash
-   git clone https://github.com/kalilasyifazzahra/peminjaman-buku.git
-   cd peminjaman-buku
-   ```
+```bash
+git clone https://github.com/kalilasyifazzahra/peminjaman-buku.git
+```
 
-2. Install dependency
+Masuk ke direktori project:
 
-   ```bash
-   composer install
-   ```
+```bash
+cd peminjaman-buku
+```
 
-3. Salin file environment dan generate key
+### 2. Install Dependency
 
-   ```bash
-   cp .env.example .env
-   php artisan key:generate
-   ```
+```bash
+composer install
+```
 
-4. Buat database (misalnya `peminjaman_buku`) di phpMyAdmin, lalu atur `.env`
+### 3. Konfigurasi Environment
 
-   ```env
-   DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DB_DATABASE=peminjaman_buku
-   DB_USERNAME=root
-   DB_PASSWORD=
-   ```
+Salin file `.env.example` menjadi `.env`:
 
-5. Jalankan migrasi
+```bash
+cp .env.example .env
+```
 
-   ```bash
-   php artisan migrate
-   ```
+Generate application key:
 
-6. Jalankan aplikasi
+```bash
+php artisan key:generate
+```
 
-   ```bash
-   php artisan serve
-   ```
+### 4. Buat Database
 
-   Buka `http://127.0.0.1:8000` di browser.
+Buat database dengan nama `peminjaman_buku` melalui phpMyAdmin, kemudian sesuaikan konfigurasi database pada file `.env`:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=peminjaman_buku
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### 5. Jalankan Migration
+
+```bash
+php artisan migrate
+```
+
+Perintah tersebut digunakan untuk membuat tabel berdasarkan file migration yang tersedia.
+
+### 6. Jalankan Aplikasi
+
+```bash
+php artisan serve
+```
+
+Buka aplikasi melalui browser:
+
+```text
+http://127.0.0.1:8000
+```
 
 ## Lisensi
 
